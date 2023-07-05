@@ -189,7 +189,6 @@ class OpenAIFunctionsAgent(BaseSingleActionAgent):
         self,
         intermediate_steps: List[Tuple[AgentAction, str]],
         callbacks: Callbacks = None,
-        with_functions: bool = True,
         **kwargs: Any,
     ) -> Union[AgentAction, AgentFinish]:
         """Given input, decided what to do.
@@ -210,7 +209,6 @@ class OpenAIFunctionsAgent(BaseSingleActionAgent):
         messages = prompt.to_messages()
         predicted_message = self.llm.predict_messages(
             messages,
-            functions=self.functions if with_functions else None,
             callbacks=callbacks,
         )
         agent_decision = _parse_ai_message(predicted_message)
@@ -262,7 +260,12 @@ class OpenAIFunctionsAgent(BaseSingleActionAgent):
             agent_decision = self.plan(
                 intermediate_steps, with_functions=False, **kwargs
             )
-            return agent_decision
+            if type(agent_decision) == AgentFinish:
+                return agent_decision
+            else:
+                raise ValueError(
+                    f"got AgentAction with no funtions provided: {agent_decision}."
+                )
         else:
             raise ValueError(
                 "early_stopping_method should be one of `force` or `generate`, "
